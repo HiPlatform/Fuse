@@ -1,5 +1,5 @@
 {
-  "name": "fuse.js",
+  "name": "sk-fuse.js",
   "author": {
     "name": "Kirollos Risk",
     "email": "kirollos@gmail.com",
@@ -11,7 +11,7 @@
   "types": "./index.d.ts",
   "repository": {
     "type": "git",
-    "url": "https://github.com/krisk/Fuse.git"
+    "url": "https://github.com/HiPlatform/Fuse.git"
   },
   "homepage": "http://fusejs.io",
   "dependencies": {},
@@ -31,6 +31,7 @@
     "babel-plugin-add-module-exports": "0.2.1",
     "babel-preset-es2015": "6.24.1",
     "babel-preset-stage-2": "6.24.1",
+    "babel-preset-stage-3": "6.24.1",
     "vows": "0.5.x",
     "webpack": "^2.4.1"
   }

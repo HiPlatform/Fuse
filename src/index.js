@@ -1,6 +1,7 @@
 const Bitap = require('./bitap')
 const deepValue = require('./helpers/deep_value')
 const isArray = require('./helpers/is_array')
+const highlighter = require('./helpers/highlighter')
 
 class Fuse {
   constructor (list, {
@@ -49,6 +50,17 @@ class Fuse {
     includeMatches = false,
     includeScore = false,
 
+    recursive = {
+      enabled: false,
+      key: undefined
+    },
+
+    highlight = {
+      enabled: false,
+      prefix: '<b>',
+      suffix: '</b>',
+    },
+
     // Will print to the console. Useful for debugging.
     verbose = false
   }) {
@@ -70,7 +82,9 @@ class Fuse {
       sortFn,
       verbose,
       tokenize,
-      matchAllTokens
+      matchAllTokens,
+      recursive,
+      highlight
     }
 
     this.setCollection(list)
@@ -175,6 +189,31 @@ class Fuse {
           tokenSearchers,
           fullSearcher
         })
+      }
+
+      if (this.options.recursive.enabled &&
+          isArray(item[this.options.recursive.key]) && 
+          item[this.options.recursive.key].length > 0
+      ){
+        const children = this._search(item[this.options.recursive.key], tokenSearchers, fullSearcher)
+        if (resultMap[i]) {
+          const result = Object.assign({}, resultMap[i], {
+            item: Object.assign({}, resultMap[i].item, {
+              [this.options.recursive.key]: children
+            })
+          })
+          const idx = results.indexOf(resultMap[i]);
+          resultMap[i] = result;
+          results[idx] = result;
+        } else if (children.length) {
+          resultMap[i] = {
+            item: Object.assign({}, item, {
+              [this.options.recursive.key]: children
+            }),
+            output: []
+          }
+          results.push(resultMap[i])
+        }
       }
     }
 
@@ -399,6 +438,12 @@ class Fuse {
       }
 
       finalOutput.push(data)
+    }
+
+    if (this.options.includeMatches && this.options.highlight && this.options.highlight.enabled){
+      finalOutput.forEach(item => {
+        highlighter(item, this.options);
+      });
     }
 
     return finalOutput

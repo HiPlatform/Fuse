@@ -29,5 +29,7 @@ declare namespace Fuse {
     maxPatternLength?: number;
     minMatchCharLength?: number;
     findAllMatches?: boolean;
+    recursive?: { enable: boolean, key: string };
+    highlight?: { enable: boolean, prefix: string, suffix: string};
   }
 }
