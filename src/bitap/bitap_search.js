@@ -18,23 +18,23 @@ module.exports = (text, pattern, patternAlphabet, { location = 0, distance = 100
     matchMask[i] = 0
   }
 
-  if (bestLocation !== -1) {
-    let score = bitapScore(pattern, {
-      errors: 0,
-      currentLocation: bestLocation,
-      expectedLocation,
-      distance
+  if (bestLocation != -1) {
+    let score = bitapScore(pattern, { 
+      errors: 0, 
+      currentLocation: bestLocation, 
+      expectedLocation, 
+      distance 
     })
     currentThreshold = Math.min(score, currentThreshold)
 
     // What about in the other direction? (speed up)
     bestLocation = text.lastIndexOf(pattern, expectedLocation + patternLen)
 
-    if (bestLocation !== -1) {
-      let score = bitapScore(pattern, {
-        errors: 0,
-        currentLocation: bestLocation,
-        expectedLocation,
+    if (bestLocation != -1) {
+      let score = bitapScore(pattern, { 
+        errors: 0, 
+        currentLocation: bestLocation, 
+        expectedLocation, 
         distance
       })
       currentThreshold = Math.min(score, currentThreshold)
@@ -48,6 +48,7 @@ module.exports = (text, pattern, patternAlphabet, { location = 0, distance = 100
   let finalScore = 1
   let binMax = patternLen + textLen
 
+  const locations = []
   const mask = 1 << (patternLen - 1)
 
   for (let i = 0; i < patternLen; i += 1) {
@@ -58,11 +59,11 @@ module.exports = (text, pattern, patternAlphabet, { location = 0, distance = 100
     let binMid = binMax
 
     while (binMin < binMid) {
-      const score = bitapScore(pattern, {
-        errors: i,
-        currentLocation: expectedLocation + binMid,
-        expectedLocation,
-        distance
+      const score = bitapScore(pattern, { 
+        errors: i, 
+        currentLocation: expectedLocation + binMid, 
+        expectedLocation, 
+        distance 
       })
 
       if (score <= currentThreshold) {
@@ -100,13 +101,13 @@ module.exports = (text, pattern, patternAlphabet, { location = 0, distance = 100
       if (i !== 0) {
         bitArr[j] |= (((lastBitArr[j + 1] | lastBitArr[j]) << 1) | 1) | lastBitArr[j + 1]
       }
-
+      
       if (bitArr[j] & mask) {
-        finalScore = bitapScore(pattern, {
-          errors: i,
-          currentLocation,
-          expectedLocation,
-          distance
+        finalScore = bitapScore(pattern, { 
+          errors: i, 
+          currentLocation, 
+          expectedLocation, 
+          distance 
         })
 
         // This match will almost certainly be better than any existing match.
@@ -115,6 +116,7 @@ module.exports = (text, pattern, patternAlphabet, { location = 0, distance = 100
           // Indeed it is
           currentThreshold = finalScore
           bestLocation = currentLocation
+          locations.push(bestLocation)
 
           // Already passed `loc`, downhill from here on in.
           if (bestLocation <= expectedLocation) {
@@ -127,24 +129,20 @@ module.exports = (text, pattern, patternAlphabet, { location = 0, distance = 100
       }
     }
 
-    // No hope for a (better) match at greater error levels.
-    const score = bitapScore(pattern, {
-      errors: i + 1,
-      currentLocation: expectedLocation,
-      expectedLocation,
-      distance
+    // No hope for a (better) match at greater error levels.    
+    const score = bitapScore(pattern, { 
+      errors: i + 1, 
+      currentLocation: expectedLocation, 
+      expectedLocation, 
+      distance 
     })
-
-    // console.log('score', score, finalScore)
-
+  
     if (score > currentThreshold) {
       break
     }
-
+    
     lastBitArr = bitArr
   }
-
-  // console.log('FINAL SCORE', finalScore)
 
   // Count exact matches (those with a score of 0) to be "almost" exact
   return {

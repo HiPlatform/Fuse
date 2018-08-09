@@ -5,13 +5,13 @@
     "email": "kirollos@gmail.com",
     "url": "http://kiro.me"
   },
-  "version": "3.2.1",
-  "description": "Lightweight fuzzy-search",
+  "version": "3.0.1",
+  "description": "Lightweight fuzzy-search based on Fuse.js by Kirollos Risk",
   "license": "Apache",
   "types": "./index.d.ts",
   "repository": {
     "type": "git",
-    "url": "https://github.com/HiPlatform/Fuse.git"
+    "url": "https://github.com/WilliamBewzenko/Fuse.git"
   },
   "homepage": "http://fusejs.io",
   "dependencies": {},
@@ -29,9 +29,9 @@
     "babel-core": "^6.24.1",
     "babel-loader": "^6.4.1",
     "babel-plugin-add-module-exports": "0.2.1",
-    "babel-preset-es2015": "6.24.1",
-    "babel-preset-stage-2": "6.24.1",
-    "babel-preset-stage-3": "6.24.1",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-stage-2": "^6.24.1",
+    "babel-preset-stage-3": "^6.24.1",
     "vows": "0.5.x",
     "webpack": "^2.4.1"
   }

@@ -1,24 +1,3 @@
-# Version 3.2.1
-
-- Fixed issue in which more fuzzy matches would weaken a score instead of strengthening it (#233)
-
-# Version 3.2.0
-
-- Give better result for exact match when using weighted keys (#192)
-
-# Version 3.1.0
-
-- Added match index location for array key (#183)
-- Allow searching deep nested numbers (#189)
-
-# Version 3.0.5
-
-- Escape special characters in search pattern (#168)
-
-# Version 3.0.4
-
-- Random bug fixes (#162)
-
 # Version 3.0.0
 
 - Removed Bower support

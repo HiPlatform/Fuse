@@ -4,18 +4,18 @@ const isArray = require('./helpers/is_array')
 const highlighter = require('./helpers/highlighter')
 
 class Fuse {
-  constructor (list, {
+  constructor (list, { 
     // Approximately where in the text is the pattern expected to be found?
-    location = 0,
+    location = 0, 
     // Determines how close the match must be to the fuzzy location (specified above).
     // An exact letter match which is 'distance' characters away from the fuzzy location
     // would score as a complete mismatch. A distance of '0' requires the match be at
     // the exact location specified, a threshold of '1000' would require a perfect match
     // to be within 800 characters of the fuzzy location to be found using a 0.8 threshold.
-    distance = 100,
+    distance = 100, 
     // At what point does the match algorithm give up. A threshold of '0.0' requires a perfect match
     // (of both letters and location), a threshold of '1.0' would match anything.
-    threshold = 0.6,
+    threshold = 0.6, 
     // Machine word size
     maxPatternLength = 32,
     // Indicates whether comparisons should be case sensitive.
@@ -46,6 +46,7 @@ class Fuse {
     // When true, the result set will only include records that match all tokens. Will only work
     // if `tokenize` is also true.
     matchAllTokens = false,
+    // Will print to the console. Useful for debugging.
 
     includeMatches = false,
     includeScore = false,
@@ -61,7 +62,6 @@ class Fuse {
       suffix: '</b>',
     },
 
-    // Will print to the console. Useful for debugging.
     verbose = false
   }) {
     this.options = {
@@ -87,10 +87,10 @@ class Fuse {
       highlight
     }
 
-    this.setCollection(list)
+    this.set(list)
   }
 
-  setCollection (list) {
+  set (list) {
     this.list = list
     return list
   }
@@ -102,16 +102,8 @@ class Fuse {
       tokenSearchers,
       fullSearcher
     } = this._prepareSearchers(pattern)
-
-    let { weights, results } = this._search(tokenSearchers, fullSearcher)
-
-    this._computeScore(weights, results)
-
-    if (this.options.shouldSort) {
-      this._sort(results)
-    }
-
-    return this._format(results)
+    
+    return this._search(this.list, tokenSearchers, fullSearcher)
   }
 
   _prepareSearchers (pattern = '') {
@@ -124,14 +116,14 @@ class Fuse {
         tokenSearchers.push(new Bitap(tokens[i], this.options))
       }
     }
-
+    
     let fullSearcher = new Bitap(pattern, this.options)
-
+    
     return { tokenSearchers, fullSearcher }
   }
 
-  _search (tokenSearchers = [], fullSearcher) {
-    const list = this.list
+  _search (list = this.list, tokenSearchers = [], fullSearcher) {
+    // const list = this.list
     const resultMap = {}
     const results = []
 
@@ -141,12 +133,12 @@ class Fuse {
       // Iterate over every item
       for (let i = 0, len = list.length; i < len; i += 1) {
         this._analyze({
-          key: '',
-          value: list[i],
-          record: i,
+          key: '', 
+          value: list[i], 
+          record: i, 
           index: i
         }, {
-          resultMap,
+          resultMap, 
           results,
           tokenSearchers,
           fullSearcher
@@ -179,14 +171,14 @@ class Fuse {
         }
 
         this._analyze({
-          key,
-          value: this.options.getFn(item, key),
-          record: item,
+          key, 
+          value: this.options.getFn(item, key), 
+          record: item, 
           index: i
         }, {
-          resultMap,
+          resultMap, 
           results,
-          tokenSearchers,
+          tokenSearchers, 
           fullSearcher
         })
       }
@@ -217,10 +209,16 @@ class Fuse {
       }
     }
 
-    return { weights, results }
+    this._computeScore(weights, results)
+
+    if (this.options.shouldSort) {
+      this._sort(results)
+    }
+    
+    return this._format(results)
   }
 
-  _analyze ({ key, arrayIndex = -1, value, record, index }, { tokenSearchers = [], fullSearcher = [], resultMap = {}, results = [] }) {
+  _analyze ({ key, value, record, index }, { tokenSearchers = [], fullSearcher = [], resultMap = {}, results = [] }) {
     // Check if the texvaluet can be searched
     if (value === undefined || value === null) {
       return
@@ -231,11 +229,11 @@ class Fuse {
     let numTextMatches = 0
 
     if (typeof value === 'string') {
-      this._log(`\nKey: ${key === '' ? '-' : key}`)
+      this._log(`\nKey: ${key === '' ? '-': key}`)
 
       let mainSearchResult = fullSearcher.search(value)
       this._log(`Full text: "${value}", score: ${mainSearchResult.score}`)
-
+      
       if (this.options.tokenize) {
         let words = value.split(this.options.tokenSeparator)
         let scores = []
@@ -297,13 +295,12 @@ class Fuse {
       if ((exists || mainSearchResult.isMatch) && checkTextMatches) {
         // Check if the item already exists in our results
         let existingResult = resultMap[index]
+
         if (existingResult) {
           // Use the lowest score
           // existingResult.score, bitapResult.score
           existingResult.output.push({
-            key,
-            arrayIndex,
-            value,
+            key: key,
             score: finalScore,
             matchedIndices: mainSearchResult.matchedIndices
           })
@@ -312,9 +309,7 @@ class Fuse {
           resultMap[index] = {
             item: record,
             output: [{
-              key,
-              arrayIndex,
-              value,
+              key: key,
               score: finalScore,
               matchedIndices: mainSearchResult.matchedIndices
             }]
@@ -326,13 +321,12 @@ class Fuse {
     } else if (isArray(value)) {
       for (let i = 0, len = value.length; i < len; i += 1) {
         this._analyze({
-          key,
-          arrayIndex: i,
-          value: value[i],
-          record,
+          key, 
+          value: value[i], 
+          record, 
           index
         }, {
-          resultMap,
+          resultMap, 
           results,
           tokenSearchers,
           fullSearcher
@@ -348,23 +342,23 @@ class Fuse {
       const output = results[i].output
       const scoreLen = output.length
 
-      let currScore = 1
+      let totalScore = 0
       let bestScore = 1
 
       for (let j = 0; j < scoreLen; j += 1) {
+        let score = output[j].score
         let weight = weights ? weights[output[j].key].weight : 1
-        let score = weight === 1 ? output[j].score : (output[j].score || 0.001)
         let nScore = score * weight
 
         if (weight !== 1) {
           bestScore = Math.min(bestScore, nScore)
         } else {
           output[j].nScore = nScore
-          currScore *= nScore
+          totalScore += nScore
         }
       }
-
-      results[i].score = bestScore === 1 ? currScore : bestScore
+      
+      results[i].score = bestScore === 1 ? totalScore / scoreLen : bestScore
 
       this._log(results[i])
     }
@@ -378,9 +372,7 @@ class Fuse {
   _format (results) {
     const finalOutput = []
 
-    if (this.options.verbose) {
-      this._log('\n\nOutput:\n\n', JSON.stringify(results))
-    }
+    this._log('\n\nOutput:\n\n', results)
 
     let transformers = []
 
@@ -391,26 +383,17 @@ class Fuse {
 
         for (let i = 0, len = output.length; i < len; i += 1) {
           let item = output[i]
-
-          if (item.matchedIndices.length === 0) {
-            continue
-          }
-
           let obj = {
-            indices: item.matchedIndices,
-            value: item.value
+            indices: item.matchedIndices
           }
           if (item.key) {
             obj.key = item.key
-          }
-          if (item.hasOwnProperty('arrayIndex') && item.arrayIndex > -1) {
-            obj.arrayIndex = item.arrayIndex
           }
           data.matches.push(obj)
         }
       })
     }
-
+    
     if (this.options.includeScore) {
       transformers.push((result, data) => {
         data.score = result.score

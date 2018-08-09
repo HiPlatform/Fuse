@@ -1,5 +1,5 @@
 /*!
- * Fuse.js v3.2.1 - Lightweight fuzzy-search (http://fusejs.io)
+ * Fuse.js v3.0.1 - Lightweight fuzzy-search (http://fusejs.io)
  * 
  * Copyright (c) 2012-2017 Kirollos Risk (http://kiro.me)
  * All Rights Reserved. Apache Software License 2.0
@@ -92,7 +92,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 module.exports = function (obj) {
-  return !Array.isArray ? Object.prototype.toString.call(obj) === '[object Array]' : Array.isArray(obj);
+  return Object.prototype.toString.call(obj) === '[object Array]';
 };
 
 /***/ }),
@@ -228,7 +228,7 @@ var deepValue = function deepValue(obj, path, list) {
 
     if (value !== null && value !== undefined) {
       if (!remaining && (typeof value === 'string' || typeof value === 'number')) {
-        list.push(value.toString());
+        list.push(value);
       } else if (isArray(value)) {
         // Search each item in the array.
         for (var i = 0, len = value.length; i < len; i += 1) {
@@ -353,26 +353,23 @@ module.exports = function (pattern) {
 "use strict";
 
 
-var SPECIAL_CHARS_REGEX = /[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g;
-
 module.exports = function (text, pattern) {
   var tokenSeparator = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : / +/g;
 
-  var regex = new RegExp(pattern.replace(SPECIAL_CHARS_REGEX, '\\$&').replace(tokenSeparator, '|'));
-  var matches = text.match(regex);
+  var matches = text.match(new RegExp(pattern.replace(tokenSeparator, '|')));
   var isMatch = !!matches;
   var matchedIndices = [];
 
   if (isMatch) {
-    for (var i = 0, matchesLen = matches.length; i < matchesLen; i += 1) {
-      var match = matches[i];
+    for (i = 0, matchesLen = matches.length; i < matchesLen; i += 1) {
+      match = matches[i];
       matchedIndices.push([text.indexOf(match), match.length - 1]);
     }
   }
 
   return {
     // TODO: revisit this score
-    score: isMatch ? 0.5 : 1,
+    score: isMatched ? 0.5 : 1,
     isMatch: isMatch,
     matchedIndices: matchedIndices
   };
@@ -444,7 +441,7 @@ module.exports = function (text, pattern, patternAlphabet, _ref) {
     matchMask[i] = 0;
   }
 
-  if (bestLocation !== -1) {
+  if (bestLocation != -1) {
     var score = bitapScore(pattern, {
       errors: 0,
       currentLocation: bestLocation,
@@ -456,7 +453,7 @@ module.exports = function (text, pattern, patternAlphabet, _ref) {
     // What about in the other direction? (speed up)
     bestLocation = text.lastIndexOf(pattern, expectedLocation + patternLen);
 
-    if (bestLocation !== -1) {
+    if (bestLocation != -1) {
       var _score = bitapScore(pattern, {
         errors: 0,
         currentLocation: bestLocation,
@@ -474,6 +471,7 @@ module.exports = function (text, pattern, patternAlphabet, _ref) {
   var finalScore = 1;
   var binMax = patternLen + textLen;
 
+  var locations = [];
   var mask = 1 << patternLen - 1;
 
   for (var _i = 0; _i < patternLen; _i += 1) {
@@ -541,6 +539,7 @@ module.exports = function (text, pattern, patternAlphabet, _ref) {
           // Indeed it is
           currentThreshold = finalScore;
           bestLocation = currentLocation;
+          locations.push(bestLocation);
 
           // Already passed `loc`, downhill from here on in.
           if (bestLocation <= expectedLocation) {
@@ -553,7 +552,7 @@ module.exports = function (text, pattern, patternAlphabet, _ref) {
       }
     }
 
-    // No hope for a (better) match at greater error levels.
+    // No hope for a (better) match at greater error levels.    
     var _score2 = bitapScore(pattern, {
       errors: _i + 1,
       currentLocation: expectedLocation,
@@ -561,16 +560,12 @@ module.exports = function (text, pattern, patternAlphabet, _ref) {
       distance: distance
     });
 
-    // console.log('score', score, finalScore)
-
     if (_score2 > currentThreshold) {
       break;
     }
 
     lastBitArr = bitArr;
   }
-
-  // console.log('FINAL SCORE', finalScore)
 
   // Count exact matches (those with a score of 0) to be "almost" exact
   return {
@@ -675,12 +670,12 @@ var Fuse = function () {
       highlight: highlight
     };
 
-    this.setCollection(list);
+    this.set(list);
   }
 
   _createClass(Fuse, [{
-    key: 'setCollection',
-    value: function setCollection(list) {
+    key: 'set',
+    value: function set(list) {
       this.list = list;
       return list;
     }
@@ -693,17 +688,7 @@ var Fuse = function () {
           tokenSearchers = _prepareSearchers2.tokenSearchers,
           fullSearcher = _prepareSearchers2.fullSearcher;
 
-      var _search2 = this._search(tokenSearchers, fullSearcher),
-          weights = _search2.weights,
-          results = _search2.results;
-
-      this._computeScore(weights, results);
-
-      if (this.options.shouldSort) {
-        this._sort(results);
-      }
-
-      return this._format(results);
+      return this._search(this.list, tokenSearchers, fullSearcher);
     }
   }, {
     key: '_prepareSearchers',
@@ -727,10 +712,11 @@ var Fuse = function () {
   }, {
     key: '_search',
     value: function _search() {
-      var tokenSearchers = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
-      var fullSearcher = arguments[1];
+      var list = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.list;
+      var tokenSearchers = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
+      var fullSearcher = arguments[2];
 
-      var list = this.list;
+      // const list = this.list
       var resultMap = {};
       var results = [];
 
@@ -809,14 +795,18 @@ var Fuse = function () {
         }
       }
 
-      return { weights: weights, results: results };
+      this._computeScore(weights, results);
+
+      if (this.options.shouldSort) {
+        this._sort(results);
+      }
+
+      return this._format(results);
     }
   }, {
     key: '_analyze',
     value: function _analyze(_ref2, _ref3) {
       var key = _ref2.key,
-          _ref2$arrayIndex = _ref2.arrayIndex,
-          arrayIndex = _ref2$arrayIndex === undefined ? -1 : _ref2$arrayIndex,
           value = _ref2.value,
           record = _ref2.record,
           index = _ref2.index;
@@ -905,13 +895,12 @@ var Fuse = function () {
         if ((exists || mainSearchResult.isMatch) && checkTextMatches) {
           // Check if the item already exists in our results
           var existingResult = resultMap[index];
+
           if (existingResult) {
             // Use the lowest score
             // existingResult.score, bitapResult.score
             existingResult.output.push({
               key: key,
-              arrayIndex: arrayIndex,
-              value: value,
               score: finalScore,
               matchedIndices: mainSearchResult.matchedIndices
             });
@@ -921,8 +910,6 @@ var Fuse = function () {
               item: record,
               output: [{
                 key: key,
-                arrayIndex: arrayIndex,
-                value: value,
                 score: finalScore,
                 matchedIndices: mainSearchResult.matchedIndices
               }]
@@ -935,7 +922,6 @@ var Fuse = function () {
         for (var _i3 = 0, len = value.length; _i3 < len; _i3 += 1) {
           this._analyze({
             key: key,
-            arrayIndex: _i3,
             value: value[_i3],
             record: record,
             index: index
@@ -957,23 +943,23 @@ var Fuse = function () {
         var output = results[i].output;
         var scoreLen = output.length;
 
-        var currScore = 1;
+        var totalScore = 0;
         var bestScore = 1;
 
         for (var j = 0; j < scoreLen; j += 1) {
+          var score = output[j].score;
           var weight = weights ? weights[output[j].key].weight : 1;
-          var score = weight === 1 ? output[j].score : output[j].score || 0.001;
           var nScore = score * weight;
 
           if (weight !== 1) {
             bestScore = Math.min(bestScore, nScore);
           } else {
             output[j].nScore = nScore;
-            currScore *= nScore;
+            totalScore += nScore;
           }
         }
 
-        results[i].score = bestScore === 1 ? currScore : bestScore;
+        results[i].score = bestScore === 1 ? totalScore / scoreLen : bestScore;
 
         this._log(results[i]);
       }
@@ -991,9 +977,7 @@ var Fuse = function () {
 
       var finalOutput = [];
 
-      if (this.options.verbose) {
-        this._log('\n\nOutput:\n\n', JSON.stringify(results));
-      }
+      this._log('\n\nOutput:\n\n', results);
 
       var transformers = [];
 
@@ -1004,20 +988,11 @@ var Fuse = function () {
 
           for (var i = 0, len = output.length; i < len; i += 1) {
             var item = output[i];
-
-            if (item.matchedIndices.length === 0) {
-              continue;
-            }
-
             var obj = {
-              indices: item.matchedIndices,
-              value: item.value
+              indices: item.matchedIndices
             };
             if (item.key) {
               obj.key = item.key;
-            }
-            if (item.hasOwnProperty('arrayIndex') && item.arrayIndex > -1) {
-              obj.arrayIndex = item.arrayIndex;
             }
             data.matches.push(obj);
           }

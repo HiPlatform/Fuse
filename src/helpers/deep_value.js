@@ -15,10 +15,10 @@ const deepValue = (obj, path, list) => {
     }
 
     const value = obj[firstSegment]
-
+    
     if (value !== null && value !== undefined) {
       if (!remaining && (typeof value === 'string' || typeof value === 'number')) {
-        list.push(value.toString())
+        list.push(value)
       } else if (isArray(value)) {
         // Search each item in the array.
         for (let i = 0, len = value.length; i < len; i += 1) {
